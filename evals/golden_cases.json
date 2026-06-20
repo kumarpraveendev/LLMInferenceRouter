@@ -1,0 +1,82 @@
+[
+  {
+    "kind": "route",
+    "name": "easy high-confidence request stays cheap",
+    "request": {"difficulty": 0.10, "difficulty_confidence": 0.95, "required_quality": "CHEAP"},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect": {"served": true, "tier": "CHEAP", "cost_max": "0.0005", "cache_hit": false}
+  },
+  {
+    "kind": "route",
+    "name": "low-confidence easy request escalates up a tier",
+    "request": {"difficulty": 0.10, "difficulty_confidence": 0.50, "required_quality": "CHEAP"},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect": {"served": true, "tier": "MID", "cache_hit": false}
+  },
+  {
+    "kind": "route",
+    "name": "hard request uses strong when budget allows",
+    "request": {"difficulty": 0.90, "difficulty_confidence": 0.95, "required_quality": "CHEAP"},
+    "config": {"per_request_ceiling": "0.0100"},
+    "expect": {"served": true, "tier": "STRONG", "cache_hit": false}
+  },
+  {
+    "kind": "route",
+    "name": "hard request over budget downgrades to a cheaper tier",
+    "request": {"difficulty": 0.90, "difficulty_confidence": 0.95, "required_quality": "CHEAP"},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect": {"served": true, "tier": "MID", "cache_hit": false}
+  },
+  {
+    "kind": "route",
+    "name": "cannot meet budget without dropping below floor -> blocked",
+    "request": {"difficulty": 0.90, "difficulty_confidence": 0.95, "required_quality": "STRONG"},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect": {"served": false, "cache_hit": false}
+  },
+  {
+    "kind": "route",
+    "name": "tenant budget exhausted -> blocked",
+    "request": {"difficulty": 0.10, "difficulty_confidence": 0.95, "required_quality": "CHEAP"},
+    "config": {"per_request_ceiling": "0.0030", "tenant_budget": "0.0001"},
+    "expect": {"served": false, "cache_hit": false}
+  },
+  {
+    "kind": "route",
+    "name": "exact cache hit serves at zero cost",
+    "request": {"difficulty": 0.90, "difficulty_confidence": 0.95, "required_quality": "STRONG"},
+    "config": {"per_request_ceiling": "0.0030", "seed_cache": true},
+    "expect": {"served": true, "cache_hit": true}
+  },
+  {
+    "kind": "route",
+    "name": "tight latency budget fails over to a faster cheap provider",
+    "request": {"difficulty": 0.90, "difficulty_confidence": 0.95, "required_quality": "CHEAP", "latency_budget_ms": 500},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect": {"served": true, "tier": "CHEAP", "degraded": true, "cache_hit": false}
+  },
+  {
+    "kind": "invariant",
+    "name": "a decision served below the quality floor is caught",
+    "request": {"difficulty": 0.10, "difficulty_confidence": 0.95, "required_quality": "STRONG"},
+    "decision": {"served": true, "tier": "CHEAP", "provider": "cheap-fast", "estimated_cost": "0.0005", "budget_verdict": "ALLOW"},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect_pass": false
+  },
+  {
+    "kind": "invariant",
+    "name": "a decision over the ceiling is caught",
+    "request": {"difficulty": 0.10, "difficulty_confidence": 0.95, "required_quality": "CHEAP"},
+    "decision": {"served": true, "tier": "STRONG", "provider": "strong-a", "estimated_cost": "0.0500", "budget_verdict": "ALLOW"},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect_pass": false
+  },
+  {
+    "kind": "invariant",
+    "name": "a clean served decision passes",
+    "request": {"difficulty": 0.10, "difficulty_confidence": 0.95, "required_quality": "CHEAP"},
+    "decision": {"served": true, "tier": "CHEAP", "provider": "cheap-fast", "estimated_cost": "0.0005", "budget_verdict": "ALLOW"},
+    "config": {"per_request_ceiling": "0.0030"},
+    "expect_pass": true
+  }
+]
