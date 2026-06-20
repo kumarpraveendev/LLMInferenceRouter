@@ -1,7 +1,7 @@
-# inference-router: A Decision Record
+# LLMinference-router: A Decision Record
 
 <!-- Replace <your-username> with your GitHub username so the badge renders -->
-[![ci](https://github.com/kumarpraveendev/inference-router/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-username>/inference-router/actions/workflows/ci.yml)
+[![ci](https://github.com/kumarpraveendev/inference-router/actions/workflows/ci.yml/badge.svg)](https://github.com/kumarpraveendev/inference-router/actions/workflows/ci.yml)
 
 > A reference design for a multi-provider, cost-aware LLM inference router — written as the set of decisions a Head of Engineering owns when the goal is "cut inference spend without quietly cutting quality," not a tour of the routing code.
 
