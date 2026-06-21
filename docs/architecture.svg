@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="660" viewBox="0 0 900 660" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#3b2f8c"/>
+    </marker>
+    <marker id="arrowg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#8a8a8a"/>
+    </marker>
+  </defs>
+
+  <text x="30" y="38" font-size="22" font-weight="bold" fill="#3b2f8c">inference-router — architecture</text>
+  <text x="30" y="58" font-size="12.5" fill="#666">Cascaded multi-provider routing: try cheap first, escalate only when quality is insufficient.</text>
+
+  <!-- Request -->
+  <rect x="30" y="95" width="150" height="92" rx="8" fill="#f4f2fb" stroke="#3b2f8c" stroke-width="1.3"/>
+  <text x="105" y="120" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="middle">Request</text>
+  <text x="105" y="140" font-size="10.5" fill="#444" text-anchor="middle">prompt +</text>
+  <text x="105" y="155" font-size="10.5" fill="#444" text-anchor="middle">constraints:</text>
+  <text x="105" y="170" font-size="10.5" fill="#444" text-anchor="middle">budget · min-quality</text>
+  <text x="105" y="184" font-size="10.5" fill="#444" text-anchor="middle">· latency SLA</text>
+
+  <!-- Router core container -->
+  <rect x="210" y="80" width="430" height="430" rx="10" fill="#fbfbfe" stroke="#3b2f8c" stroke-width="1.6"/>
+  <text x="225" y="100" font-size="13" font-weight="bold" fill="#3b2f8c">Router Core</text>
+
+  <!-- complexity classifier -->
+  <rect x="250" y="112" width="350" height="40" rx="7" fill="#eef0fb" stroke="#9aa0d6"/>
+  <text x="425" y="137" font-size="11.5" fill="#222" text-anchor="middle">Complexity classifier (optional) — pick starting tier</text>
+
+  <!-- Tier 1 -->
+  <rect x="250" y="166" width="350" height="42" rx="7" fill="#e9f7ef" stroke="#3a9d6e"/>
+  <text x="425" y="192" font-size="12" fill="#1a1a1a" text-anchor="middle"><tspan font-weight="bold">Tier 1 · Small model</tspan>  (cheapest)</text>
+
+  <!-- Gate 1 -->
+  <rect x="250" y="220" width="350" height="46" rx="7" fill="#fdf6e9" stroke="#cda13a"/>
+  <text x="425" y="241" font-size="11.5" font-weight="bold" fill="#222" text-anchor="middle">Quality scorer → Escalation policy</text>
+  <text x="425" y="257" font-size="10.3" fill="#555" text-anchor="middle">accept ▸ return    |    escalate ▾ next tier</text>
+
+  <!-- Tier 2 -->
+  <rect x="250" y="278" width="350" height="42" rx="7" fill="#e9f7ef" stroke="#3a9d6e"/>
+  <text x="425" y="304" font-size="12" fill="#1a1a1a" text-anchor="middle"><tspan font-weight="bold">Tier 2 · Mid model</tspan></text>
+
+  <!-- Gate 2 -->
+  <rect x="250" y="332" width="350" height="46" rx="7" fill="#fdf6e9" stroke="#cda13a"/>
+  <text x="425" y="353" font-size="11.5" font-weight="bold" fill="#222" text-anchor="middle">Quality scorer → Escalation policy</text>
+  <text x="425" y="369" font-size="10.3" fill="#555" text-anchor="middle">accept ▸ return    |    escalate ▾ frontier</text>
+
+  <!-- Tier 3 -->
+  <rect x="250" y="390" width="350" height="42" rx="7" fill="#e9f7ef" stroke="#3a9d6e"/>
+  <text x="425" y="416" font-size="12" fill="#1a1a1a" text-anchor="middle"><tspan font-weight="bold">Tier 3 · Frontier model</tspan>  (quality ceiling)</text>
+
+  <!-- fallback note -->
+  <rect x="250" y="448" width="350" height="40" rx="7" fill="#fbecec" stroke="#c47a7a"/>
+  <text x="425" y="472" font-size="10.8" fill="#222" text-anchor="middle">Fallback / circuit-breaker — on error/timeout, retry or swap provider</text>
+
+  <!-- vertical flow arrows inside core -->
+  <line x1="425" y1="152" x2="425" y2="166" stroke="#3b2f8c" stroke-width="1.3" marker-end="url(#arrow)"/>
+  <line x1="425" y1="208" x2="425" y2="220" stroke="#3b2f8c" stroke-width="1.3" marker-end="url(#arrow)"/>
+  <line x1="425" y1="266" x2="425" y2="278" stroke="#3b2f8c" stroke-width="1.3" marker-end="url(#arrow)"/>
+  <line x1="425" y1="320" x2="425" y2="332" stroke="#3b2f8c" stroke-width="1.3" marker-end="url(#arrow)"/>
+  <line x1="425" y1="378" x2="425" y2="390" stroke="#3b2f8c" stroke-width="1.3" marker-end="url(#arrow)"/>
+
+  <!-- request into core -->
+  <line x1="180" y1="141" x2="250" y2="132" stroke="#3b2f8c" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+  <!-- Response -->
+  <rect x="690" y="210" width="175" height="92" rx="8" fill="#f4f2fb" stroke="#3b2f8c" stroke-width="1.3"/>
+  <text x="777" y="236" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="middle">Response</text>
+  <text x="777" y="258" font-size="10.5" fill="#444" text-anchor="middle">answer +</text>
+  <text x="777" y="273" font-size="10.5" fill="#444" text-anchor="middle">cost · tier · latency</text>
+  <text x="777" y="288" font-size="10.5" fill="#444" text-anchor="middle">quality metadata</text>
+
+  <!-- accept arrows to response -->
+  <path d="M600 243 H660 V256 H688" fill="none" stroke="#3a9d6e" stroke-width="1.3" marker-end="url(#arrow)"/>
+  <path d="M600 355 H660 V256" fill="none" stroke="#3a9d6e" stroke-width="1.3"/>
+  <path d="M600 411 H668 V256" fill="none" stroke="#3a9d6e" stroke-width="1.3"/>
+
+  <!-- Cross-cutting band -->
+  <text x="30" y="540" font-size="12.5" font-weight="bold" fill="#3b2f8c">Cross-cutting</text>
+  <line x1="30" y1="548" x2="865" y2="548" stroke="#3b2f8c" stroke-width="0.8"/>
+
+  <rect x="30" y="560" width="195" height="80" rx="8" fill="#f6f6f9" stroke="#9aa0d6"/>
+  <text x="127" y="582" font-size="11.5" font-weight="bold" fill="#222" text-anchor="middle">Provider Adapters</text>
+  <text x="127" y="600" font-size="10" fill="#555" text-anchor="middle">OpenAI · Anthropic</text>
+  <text x="127" y="614" font-size="10" fill="#555" text-anchor="middle">Gemini · vLLM (local)</text>
+  <text x="127" y="630" font-size="9.3" fill="#888" text-anchor="middle">one interface · add provider = 1 file</text>
+
+  <rect x="240" y="560" width="195" height="80" rx="8" fill="#f6f6f9" stroke="#9aa0d6"/>
+  <text x="337" y="582" font-size="11.5" font-weight="bold" fill="#222" text-anchor="middle">Cost Accountant</text>
+  <text x="337" y="600" font-size="10" fill="#555" text-anchor="middle">per-request tokens + $</text>
+  <text x="337" y="614" font-size="10" fill="#555" text-anchor="middle">counts ALL tiers + judge</text>
+  <text x="337" y="630" font-size="10" fill="#555" text-anchor="middle">budget enforcement</text>
+
+  <rect x="450" y="560" width="195" height="80" rx="8" fill="#f6f6f9" stroke="#9aa0d6"/>
+  <text x="547" y="582" font-size="11.5" font-weight="bold" fill="#222" text-anchor="middle">Telemetry</text>
+  <text x="547" y="600" font-size="10" fill="#555" text-anchor="middle">OpenTelemetry / Langfuse</text>
+  <text x="547" y="614" font-size="10" fill="#555" text-anchor="middle">traces · escalation rate</text>
+  <text x="547" y="630" font-size="10" fill="#555" text-anchor="middle">tier distribution · p50/p95</text>
+
+  <rect x="660" y="560" width="205" height="80" rx="8" fill="#f6f6f9" stroke="#9aa0d6"/>
+  <text x="762" y="582" font-size="11.5" font-weight="bold" fill="#222" text-anchor="middle">Config (YAML)</text>
+  <text x="762" y="600" font-size="10" fill="#555" text-anchor="middle">tiers · models · pricing</text>
+  <text x="762" y="614" font-size="10" fill="#555" text-anchor="middle">escalation thresholds</text>
+  <text x="762" y="630" font-size="10" fill="#555" text-anchor="middle">budgets · SLAs</text>
+
+  <!-- dashed links from band to core -->
+  <line x1="127" y1="560" x2="240" y2="430" stroke="#8a8a8a" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrowg)"/>
+  <line x1="337" y1="560" x2="360" y2="510" stroke="#8a8a8a" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrowg)"/>
+  <line x1="547" y1="560" x2="500" y2="510" stroke="#8a8a8a" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrowg)"/>
+  <line x1="762" y1="560" x2="620" y2="430" stroke="#8a8a8a" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrowg)"/>
+</svg>
