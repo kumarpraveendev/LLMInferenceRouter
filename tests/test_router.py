@@ -1,90 +1,48 @@
-from decimal import Decimal
+"""Unit tests for the router core — pure logic, no network or API keys.
 
-from src.budget import BudgetPolicy
-from src.cache import ResponseCache
-from src.providers import DEFAULT_PROVIDERS, Provider
-from src.request import InferenceRequest, ModelTier
-from src.router import Router, select_tier
+These exercise cost accounting and cascade accept-vs-escalate behavior using
+the FakeAdapter, which is exactly what makes CI runnable without secrets.
+"""
+from router.types import Call
+from router.cost import CostAccountant
+from router.cascade import CascadeRouter, Tier
+from router.adapters.fake import FakeAdapter
+from router.escalation import AlwaysEscalate
 
-
-def req(**kw):
-    base = dict(request_id="r", tenant_id="t", cache_key="k",
-                difficulty=0.1, difficulty_confidence=0.99, required_quality=ModelTier.CHEAP)
-    base.update(kw)
-    return InferenceRequest(**base)
+PRICING = {"small": {"in": 0.15, "out": 0.60}, "frontier": {"in": 3.0, "out": 15.0}}
 
 
-def router(**kw):
-    kw.setdefault("budget", BudgetPolicy(per_request_ceiling=Decimal("0.0030")))
-    return Router(DEFAULT_PROVIDERS, **kw)
+class NeverEscalate:
+    def should_escalate(self, prompt, answer, tier, calls):
+        return False
 
 
-def test_easy_request_routes_cheap():
-    d = router().serve(req(difficulty=0.1, difficulty_confidence=0.99))
-    assert d.served and d.tier is ModelTier.CHEAP
+def test_cost_accountant_prices_one_million_tokens():
+    acc = CostAccountant(PRICING)
+    assert acc.price(Call("small", "fake", 1_000_000, 0, 0.1)) == 0.15
 
 
-def test_low_confidence_escalates_up():
-    tier, _ = select_tier(req(difficulty=0.1, difficulty_confidence=0.5))
-    assert tier is ModelTier.MID
+def test_cost_total_sums_every_call_including_escalation():
+    acc = CostAccountant(PRICING)
+    calls = [Call("small", "fake", 1_000_000, 0, 0.1),
+             Call("frontier", "fake", 1_000_000, 0, 0.1)]
+    assert acc.total(calls) == 0.15 + 3.0
 
 
-def test_quality_floor_is_respected():
-    tier, _ = select_tier(req(difficulty=0.1, difficulty_confidence=0.99,
-                              required_quality=ModelTier.STRONG))
-    assert tier is ModelTier.STRONG
+def test_router_stops_at_cheapest_tier_when_not_escalating():
+    tiers = [Tier("small", FakeAdapter("fake-small")),
+             Tier("frontier", FakeAdapter("fake-frontier"))]
+    r = CascadeRouter(tiers, NeverEscalate(), CostAccountant(PRICING)).route("hi")
+    assert r.final_tier == "small"
+    assert r.escalated is False
+    assert len(r.calls) == 1
 
 
-def test_hard_request_uses_strong_when_budget_allows():
-    d = router(budget=BudgetPolicy(per_request_ceiling=Decimal("0.01"))).serve(
-        req(difficulty=0.9))
-    assert d.served and d.tier is ModelTier.STRONG
-
-
-def test_over_budget_downgrades():
-    d = router().serve(req(difficulty=0.9))
-    assert d.served and d.tier is ModelTier.MID and d.budget_verdict == "DOWNGRADE"
-
-
-def test_cannot_meet_budget_without_breaching_floor_blocks():
-    d = router().serve(req(difficulty=0.9, required_quality=ModelTier.STRONG))
-    assert not d.served and d.budget_verdict == "BLOCK"
-
-
-def test_tenant_budget_exhausted_blocks():
-    pol = BudgetPolicy(per_request_ceiling=Decimal("0.0030"),
-                       tenant_remaining={"t": Decimal("0.0001")})
-    d = Router(DEFAULT_PROVIDERS, budget=pol).serve(req(difficulty=0.1))
-    assert not d.served and d.budget_verdict == "BLOCK"
-
-
-def test_cache_hit_serves_at_zero_cost():
-    cache = ResponseCache()
-    cache.put("k", "cached")
-    d = router(cache=cache).serve(req(difficulty=0.9, required_quality=ModelTier.STRONG))
-    assert d.served and d.cache_hit and d.estimated_cost == Decimal("0")
-
-
-def test_unhealthy_tier_fails_over():
-    pool = [
-        Provider("cheap-fast", ModelTier.CHEAP, Decimal("0.00025"), Decimal("0.00125"), 400, healthy=False),
-        Provider("cheap-alt", ModelTier.CHEAP, Decimal("0.00020"), Decimal("0.00100"), 600, healthy=False),
-        Provider("mid-a", ModelTier.MID, Decimal("0.00100"), Decimal("0.00500"), 800),
-    ]
-    d = Router(pool, budget=BudgetPolicy(per_request_ceiling=Decimal("0.01"))).serve(
-        req(difficulty=0.1))
-    assert d.served and d.tier is ModelTier.MID and d.degraded
-
-
-def test_latency_budget_filters_slow_providers():
-    # difficulty high -> wants STRONG, but only the fast cheap provider meets a 500ms budget
-    d = router(budget=BudgetPolicy(per_request_ceiling=Decimal("0.01"))).serve(
-        req(difficulty=0.9, latency_budget_ms=500))
-    assert d.served and d.tier is ModelTier.CHEAP and d.degraded
-
-
-def test_no_provider_at_floor_blocks():
-    pool = [Provider("cheap-fast", ModelTier.CHEAP, Decimal("0.00025"), Decimal("0.00125"), 400, healthy=False)]
-    d = Router(pool, budget=BudgetPolicy(per_request_ceiling=Decimal("0.01"))).serve(
-        req(difficulty=0.1))
-    assert not d.served
+def test_router_escalates_to_frontier_and_costs_more_than_zero():
+    tiers = [Tier("small", FakeAdapter("fake-small")),
+             Tier("frontier", FakeAdapter("fake-frontier"))]
+    r = CascadeRouter(tiers, AlwaysEscalate(), CostAccountant(PRICING)).route("hi")
+    assert r.final_tier == "frontier"
+    assert r.escalated is True
+    assert [c.tier for c in r.calls] == ["small", "frontier"]
+    assert r.usd_cost > 0
